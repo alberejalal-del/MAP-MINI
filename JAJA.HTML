@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>خريطة ذكية</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body{margin:0;font-family:Arial}
+#map{height:100vh}
+
+.panel{
+  position:fixed;
+  top:10px;
+  left:10px;
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  z-index:9999;
+  width:220px;
+}
+button{width:100%;margin-top:5px}
+</style>
+</head>
+<body>
+
+<div class="panel">
+<input id="q" placeholder="ابحث عن مكان" style="width:100%">
+<button onclick="search()">🔎 بحث</button>
+<button onclick="myLoc()">📍 موقعي</button>
+<button onclick="addPlace()">➕ إضافة مكان</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map = L.map('map').setView([30,0],2);
+
+// طبقة خريطة قوية
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19
+}).addTo(map);
+
+let marker;
+
+// 🔎 بحث عالمي
+async function search(){
+  let q = document.getElementById("q").value;
+
+  let res = await fetch("https://nominatim.openstreetmap.org/search?format=json&q="+q);
+  let data = await res.json();
+
+  if(data.length){
+    let p = data[0];
+
+    map.setView([p.lat,p.lon],12);
+
+    if(marker) map.removeLayer(marker);
+    marker = L.marker([p.lat,p.lon]).addTo(map)
+      .bindPopup(p.display_name)
+      .openPopup();
+  }
+}
+
+// 📍 موقعك
+function myLoc(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    let lat = pos.coords.latitude;
+    let lon = pos.coords.longitude;
+
+    map.setView([lat,lon],14);
+
+    if(marker) map.removeLayer(marker);
+    marker = L.marker([lat,lon]).addTo(map)
+      .bindPopup("📍 أنت هنا")
+      .openPopup();
+  });
+}
+
+// ➕ إضافة أماكن مخصصة
+function addPlace(){
+  map.once('click', function(e){
+    let name = prompt("اسم المكان:");
+
+    if(name){
+      L.marker([e.latlng.lat,e.latlng.lng]).addTo(map)
+        .bindPopup("⭐ "+name)
+        .openPopup();
+    }
+  });
+
+  alert("اضغط على الخريطة لإضافة مكان");
+}
+
+// 🕌 أماكن جاهزة (تقدر تزيدها)
+let places = [
+  ["النجف 🕌",31.999,44.314],
+  ["كربلاء 🕌",32.616,44.032]
+];
+
+places.forEach(p=>{
+  L.marker([p[1],p[2]]).addTo(map).bindPopup(p[0]);
+});
+
+</script>
+
+</body>
+</html>
